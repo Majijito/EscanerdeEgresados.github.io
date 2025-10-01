@@ -84,6 +84,7 @@
     #procesarBtn { background-color: #5257f8; } #procesarBtn:hover { background-color: #5257f8; }
     #limpiarBtn  { background-color: #6c757d; } #limpiarBtn:hover  { background-color: #5a6268; }
     #exportarBtn { background-color: #28a745; } #exportarBtn:hover { background-color: #218838; }
+    #exportarFil {background-color: #28a745; } #exportarFil:hover { background-color: #218838; }
     #estado { text-align: center; margin-top: 10px; font-weight: bold; }
     .section-table { margin-top: 30px; }
     table { width: 100%; border-collapse: collapse; background: #fff; }
@@ -176,6 +177,8 @@
       <button id="procesarBtn">Procesar</button>
       <button id="limpiarBtn">Limpiar</button>
       <button id="exportarBtn">Exportar Excel</button>
+      <button id="exportarFil">Exportar Filtrados</button>
+
     </div>
 
     <div id="estado"></div>
@@ -220,6 +223,13 @@
         </div>
       </div>
     </div>
+<!-- NUEVO: Contador total mostrado -->
+<div class="section-table" style="margin: 8px 0; display:flex; justify-content:flex-end;">
+  <span id="contadorPersonas"
+        style="background:#5257f8; color:#fff; padding:6px 12px; border-radius:10px; font-weight:bold;">
+    Total: 0
+  </span>
+</div>
 
     <div class="section-table" id="tablaResultados"></div>
 
@@ -231,6 +241,15 @@
       <div class="chart-container">
         <h3>Tasa de Búsqueda de Empleo</h3>
         <canvas id="chartTasas"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Distribución Hoja de Vida (%)</h3>
+        <canvas id="chartHojaVida"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3>Conteo por Programa utp</h3>
+        <canvas id="chartProgramaCount"></canvas>
+        <div id="leyendaProgramas" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
       </div>
     </div>
   </div>
@@ -323,7 +342,7 @@
 </script>
 
 <script>
-  let chart1=null, chart2=null;
+  let chart1=null, chart2=null; let chartHv = null; let chartProg = null;
   let coincidenciasExportables=[];
   let selectedEsclavoFiles = [];
   let hasVacantesMeta = false; // si hay archivo de oferentes/postulados
@@ -715,7 +734,7 @@ function renderTabla(list){
   const showVacCols = !!ultimaSel; // solo mostrar columnas de vacantes si hay filtro aplicado
 
   let html = `<table><thead><tr>
-    <th>Número Documento</th><th>Nombre</th><th>Programa</th><th>Nivel</th><th>Género</th>
+    <th>Número Documento</th><th>Nombre</th><th>Programa UTP</th><th>Último nivel educativo</th><th>Género</th>
     <th>Celular</th><th>Correo</th><th>Hoja de Vida</th>${showVacCols ? '<th>Última Vacante</th><th>Código Vacante</th>' : ''}
   </tr></thead><tbody>`;
 
@@ -730,6 +749,9 @@ function renderTabla(list){
   });
 
   html += `</tbody></table>`;
+  // NUEVO: actualizar contador
+const cnt = document.getElementById('contadorPersonas');
+if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
   el.innerHTML = html;
 }
 
@@ -902,6 +924,84 @@ function renderTabla(list){
         options:{ responsive:true }
       });
 
+      const ctxHv = document.getElementById('chartHojaVida').getContext('2d');
+if (chartHv) chartHv.destroy();
+const hvValues = coincidenciasExportables.map(r => {
+  const v = parseFloat(r.hojaVida);
+  return isNaN(v) ? 0 : v;
+});
+// Por ejemplo: agrupar en rangos 0‑20, 21‑40, 41‑60, 61‑80, 81‑100
+const ranges = {
+  '0‑20': 0, '21‑40': 0, '41‑60': 0, '61‑80': 0, '81‑100': 0
+};
+hvValues.forEach(v => {
+  if (v <= 20) ranges['0‑20']++;
+  else if (v <= 40) ranges['21‑40']++;
+  else if (v <= 60) ranges['41‑60']++;
+  else if (v <= 80) ranges['61‑80']++;
+  else ranges['81‑100']++;
+});
+chartHv = new Chart(ctxHv, {
+  type: 'bar',
+  data: {
+    labels: Object.keys(ranges),
+    datasets: [{
+      label: 'Número de personas',
+      data: Object.values(ranges),
+      backgroundColor: '#17a2b8'
+    }]
+  },
+  options: {
+    responsive: true,
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  }
+});
+
+const ctxP = document.getElementById('chartProgramaCount').getContext('2d');
+if (chartProg) chartProg.destroy();
+
+const countByProg = {};
+coincidenciasExportables.forEach(r => {
+  const canon = canonProgram(r.programa || '');
+  const label = prettyProgram(canon, r.programa || '');
+  countByProg[label] = (countByProg[label] || 0) + 1;
+});
+
+const labelsP = Object.keys(countByProg).sort((a, b) => a.localeCompare(b, 'es'));
+const dataP = labelsP.map(lb => countByProg[lb]);
+
+chartProg = new Chart(ctxP, {
+  type: 'bar',
+  data: {
+    labels: labelsP,
+    datasets: [{
+      label: 'Personas',
+      data: dataP,
+      backgroundColor: labelsP.map((_, i) => `hsl(${(i * 47) % 360}, 70%, 60%)`)
+    }]
+  },
+  options: {
+  responsive: true,
+  scales: {
+    y: {
+      beginAtZero: true,
+      ticks: { precision: 0 }
+    },
+    x: {
+      ticks: {
+        maxRotation: 60,
+        minRotation: 60,
+        autoSkip: false
+      }
+    }
+  }
+}
+
+});
+
+
+
+
       estado.textContent = '✅ Análisis completo';
     }catch(err){
       console.error(err);
@@ -922,13 +1022,16 @@ function renderTabla(list){
     const vacBox = document.getElementById('vacantesFilters'); if (vacBox) vacBox.style.display='none';
     const fuv=document.getElementById('filtroUltimaVacante'); if (fuv) fuv.value='';
     if (chart1) chart1.destroy(); if (chart2) chart2.destroy();
+    // NUEVO: reset contador
+const cnt = document.getElementById('contadorPersonas');
+if (cnt) cnt.textContent = 'Total: 0';
   });
 
   document.getElementById('exportarBtn').addEventListener('click', ()=>{
     if (!coincidenciasExportables.length){ alert('No hay coincidencias para exportar.'); return; }
     const datos = coincidenciasExportables.map(r=>({
-      Documento:r.id, Nombre:r.nombre||'', Programa:r.programa||'',
-      Nivel:prettyNivel(nivelCanonRobusto(r.nivel||'', r.programa||'')), Genero:r.genero||'', HojaVida:r.hojaVida||'',
+      Documento:r.id, Nombre:r.nombre||'', 'Programa UTP':r.programa||'',
+      'Último nivel educativo':prettyNivel(nivelCanonRobusto(r.nivel||'', r.programa||'')), Genero:r.genero||'', HojaVida:r.hojaVida||'',
       Celular:r.telefono||'', Correo:r.correo||''
     }));
     const ws = XLSX.utils.json_to_sheet(datos);
@@ -936,6 +1039,52 @@ function renderTabla(list){
     XLSX.utils.book_append_sheet(wb, ws, 'Coincidencias');
     XLSX.writeFile(wb, 'Coincidencias_Egresados.xlsx');
   });
+
+  document.getElementById('exportarFil').addEventListener('click', () => {
+  const progCanonSel = (document.getElementById('filtroPrograma').value || '');
+  const nivelCanonSel = (document.getElementById('filtroNivel')?.value || '');
+  const txt = (document.getElementById('filtroTexto').value || '').toLowerCase();
+  const ultSel = (document.getElementById('filtroUltimaVacante')?.value || '').toLowerCase();
+
+  const filtered = coincidenciasExportables.filter(r => {
+    const pCanon = canonProgram(r.programa || '');
+    const nCanon = nivelCanonRobusto(r.nivel || '', r.programa || '');
+    const okP = !progCanonSel || pCanon === progCanonSel;
+
+    let okN;
+    if (!nivelCanonSel) okN = true;
+    else if (nivelCanonSel === 'profesional') okN = (nCanon === 'profesional') && !isProgramaTecnologia(r.programa);
+    else okN = (nCanon === nivelCanonSel);
+
+    const okT = !txt || (r.nombre || '').toLowerCase().includes(txt) || (r.id || '').includes(txt) || (r.correo || '').toLowerCase().includes(txt) || (r.telefono || '').toLowerCase().includes(txt);
+    const okUlt = !ultSel || (String(r.ultimaVacante ?? '').toLowerCase() === ultSel);
+
+    return okP && okN && okT && okUlt;
+  });
+
+  if (!filtered.length) {
+    alert('No hay registros para exportar con los filtros actuales.');
+    return;
+  }
+
+  const datos = filtered.map(r => ({
+    Documento: r.id,
+    Nombre: r.nombre || '',
+    'Programa utp': r.programa || '',
+    'Último nivel educativo': prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || '')),
+    Género: r.genero || '',
+    'Hoja de Vida': r.hojaVida || '',
+    Celular: r.telefono || '',
+    Correo: r.correo || ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(datos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Filtrados');
+  XLSX.writeFile(wb, 'Coincidencias_Filtradas.xlsx');
+});
+
+  
 
   document.getElementById("btnLogout").addEventListener("click", () => {
     if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
