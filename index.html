@@ -202,6 +202,14 @@
         </div>
 
         <div style="flex: 1;">
+          <label for="filtroGenero">Filtrar por Género:</label><br>
+          <select id="filtroGenero" style="width: 100%; padding: 8px;">
+          <option value="">Todos los géneros</option>
+          </select>
+        </div>
+
+
+        <div style="flex: 1;">
           <label for="filtroNivel">Filtrar por Nivel educativo:</label><br>
           <select id="filtroNivel" style="width: 100%; padding: 8px;">
             <option value="">Todos los niveles</option>
@@ -784,6 +792,24 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
     }
   }
 
+  function fillGeneroFilter(list) {
+  const sel = document.getElementById('filtroGenero');
+  const set = new Set();
+  list.forEach(x => {
+    const genero = (x.genero || '').trim();
+    if (genero) set.add(genero);
+  });
+  const items = Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  sel.innerHTML = '<option value="">Todos los géneros</option>';
+  items.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+}
+
+
   // NUEVO: llenar opciones de “Última Vacante”
   function fillUltimaVacanteOptions(list){
     const sel = document.getElementById('filtroUltimaVacante');
@@ -802,6 +828,7 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
 
   function applyFilters(){
     const progCanonSel  = (document.getElementById('filtroPrograma').value||'');
+    const generoSel = (document.getElementById('filtroGenero')?.value || '').toLowerCase();
     const nivelCanonSel = (document.getElementById('filtroNivel')?.value||'');
     const txt  = (document.getElementById('filtroTexto').value||'').toLowerCase();
     const ultSel = (document.getElementById('filtroUltimaVacante')?.value || '').toLowerCase();
@@ -810,7 +837,7 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
       const pCanon = canonProgram(r.programa || '');
       const nCanon = nivelCanonRobusto(r.nivel || '', r.programa || '');
       const pIsTec = isProgramaTecnologia(r.programa || '');
-
+      const okG = !generoSel || (r.genero || '').toLowerCase() === generoSel;
       const okP = !progCanonSel || pCanon === progCanonSel;
 
       let okN;
@@ -822,7 +849,8 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
 
       const okUlt = !ultSel || (String(r.ultimaVacante ?? '').toLowerCase() === ultSel);
 
-      return okP && okN && okT && okUlt;
+      return okP && okN && okT && okUlt && okG;
+
     });
     renderTabla(filtered);
   }
@@ -901,6 +929,7 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
 
       fillProgramFilter(coincidenciasExportables);
       fillNivelFilter(coincidenciasExportables);
+      fillGeneroFilter(coincidenciasExportables);
       renderTabla(coincidenciasExportables);
 
       // mostrar/ocultar y llenar opciones de Última Vacante
