@@ -251,7 +251,7 @@
         <canvas id="chartTasas"></canvas>
       </div>
       <div class="chart-container">
-        <h3>Distribución Hoja de Vida (%)</h3>
+        <h3>Clasificación de Hojas de Vida(%)</h3>
         <canvas id="chartHojaVida"></canvas>
       </div>
       <div class="chart-container">
@@ -743,7 +743,8 @@ function renderTabla(list){
 
   let html = `<table><thead><tr>
     <th>Número Documento</th><th>Nombre</th><th>Programa UTP</th><th>Último nivel educativo</th><th>Género</th>
-    <th>Celular</th><th>Correo</th><th>Hoja de Vida</th>${showVacCols ? '<th>Última Vacante</th><th>Código Vacante</th>' : ''}
+    <th>Celular</th><th>Correo</th><th>Hoja de Vida
+    </th>${showVacCols ? '<th>Última Vacante</th><th>Código Vacante</th>' : ''}
   </tr></thead><tbody>`;
 
   list.forEach(r=>{
@@ -1102,7 +1103,7 @@ if (cnt) cnt.textContent = 'Total: 0';
     'Programa utp': r.programa || '',
     'Último nivel educativo': prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || '')),
     Género: r.genero || '',
-    'Hoja de Vida': r.hojaVida || '',
+    'Hoja de Vida(%)': r.hojaVida || '',
     Celular: r.telefono || '',
     Correo: r.correo || ''
   }));
