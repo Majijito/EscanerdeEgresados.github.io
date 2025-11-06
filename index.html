@@ -445,7 +445,7 @@
                 if (row.every(v => (v==null || String(v).trim()===''))) continue;
                 const obj = {};
                 for (let c=0; c<headers.length; c++){
-                  obj[headers[c] || __col_${c}] = row[c];
+                  obj[headers[c] || `__col_${c}`] = row[c];
                 }
                 rows.push(obj);
               }
@@ -456,7 +456,7 @@
                 if (row.every(v => (v==null || String(v).trim()===''))) continue;
                 const obj = {};
                 for (let c=0; c<maxCols; c++){
-                  obj[col_${c}] = row[c];
+                  obj[`col_${c}`] = row[c];
                 }
                 rows.push(obj);
               }
@@ -553,7 +553,7 @@
   };
 
   function fixTypos(s){
-    s = s.replace(/\(.?\)|\[.?\]/g,' ');
+    s = s.replace(/\(.*?\)|\[.*?\]/g,' ');
     s = s.replace(/\binenier[oa]?\b/g,'ingenieria');
     s = s.replace(/\bing[ei]nier[oa]\b/g,'ingenieria');
     s = s.replace(/\bing[ei]nieria?\b/g,'ingenieria');
@@ -614,8 +614,8 @@
     else if (/administracion/.test(s)) area = 'administracion';
     else if (/contabilidad/.test(s)) area = 'contabilidad';
 
-    if (nivel && area) return ${nivel}_${area};
-    if (nivel) return ${nivel}_${s.replace(/\s+/g,'_')};
+    if (nivel && area) return `${nivel}_${area}`;
+    if (nivel) return `${nivel}_${s.replace(/\s+/g,'_')}`;
     return s.replace(/\s+/g,'_');
   }
 
@@ -763,14 +763,14 @@
         <td>${r.id}</td><td>${r.nombre || '—'}</td><td>${r.programa || '—'}</td>
         <td>${nivelBonito || '—'}</td><td>${r.genero || '—'}</td>
         <td>${r.telefono || '—'}</td><td>${r.correo || '—'}</td><td>${r.hojaVida || '—'}</td>
-        ${showVacCols ? <td>${r.ultimaVacante ?? '—'}</td><td>${r.codigoVacante ?? '—'}</td> : ''}
+        ${showVacCols ? `<td>${r.ultimaVacante ?? '—'}</td><td>${r.codigoVacante ?? '—'}</td>` : ''}
       </tr>`;
     });
 
-    html += </tbody></table>;
+    html += `</tbody></table>`;
     // actualizar contador
     const cnt = document.getElementById('contadorPersonas');
-    if (cnt) cnt.textContent = Total: ${list.length.toLocaleString('es-CO')};
+    if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
     el.innerHTML = html;
   }
 
@@ -1008,7 +1008,7 @@ chartCiudad = new Chart(ctxC, {
     datasets: [{
       label: 'Personas',
       data: dataC,
-      backgroundColor: labelsC.map((_, i) => hsl(${(i*37)%360}, 70%, 60%))
+      backgroundColor: labelsC.map((_, i) => `hsl(${(i*37)%360}, 70%, 60%)`)
     }]
   },
   options: {
@@ -1046,7 +1046,7 @@ chartCiudad = new Chart(ctxC, {
           datasets: [{
             label: 'Personas',
             data: dataP,
-            backgroundColor: labelsP.map((_, i) => hsl(${(i * 47) % 360}, 70%, 60%))
+            backgroundColor: labelsP.map((_, i) => `hsl(${(i * 47) % 360}, 70%, 60%)`)
           }]
         },
         options: {
