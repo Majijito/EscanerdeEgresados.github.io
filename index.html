@@ -85,6 +85,9 @@
     #limpiarBtn  { background-color: #6c757d; } #limpiarBtn:hover  { background-color: #5a6268; }
     #exportarBtn { background-color: #28a745; } #exportarBtn:hover { background-color: #218838; }
     #exportarFil {background-color: #28a745; } #exportarFil:hover { background-color: #218838; }
+    /* Botón Cerrar sesión en la fila de acciones */
+    #btnLogout { background-color: #5257f8; }
+    #btnLogout:hover { background-color: #5257f8; }
     #estado { text-align: center; margin-top: 10px; font-weight: bold; }
     .section-table { margin-top: 30px; }
     table { width: 100%; border-collapse: collapse; background: #fff; }
@@ -96,7 +99,7 @@
   </style>
 </head>
 <body> 
-    <!-- Overlay de login -->
+  <!-- Overlay de login -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box" id="loginBox">
       <img src="https://media2.utp.edu.co/oficinas/60/Bolsa-de-empleo-azul.png" alt="Logo Bolsa de Empleo UTP" />
@@ -144,16 +147,10 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap;">
       <img src="https://media2.utp.edu.co/oficinas/60/Bolsa-de-empleo-azul.png" alt="Logo Bolsa de Empleo UTP" style="height: 50px;">
       <h1 style="flex: 1; text-align: center; margin: 0;">Escáner de Egresados | Bolsa de Empleo</h1>
-      <button id="btnLogout" style="
-        padding: 8px 16px;
-        background-color: #5257f8;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-        height: 40px;
-      ">Cerrar sesión</button>
+      <img src="https://personas.serviciodeempleo.gov.co/Images/NewLogin/logo-servicio-de-empleo.png"
+     alt="Logo Servicio de Empleo"
+     style="height: 60px; max-width: 260px; width: auto; object-fit: contain;">
+
     </div>
 
     <div class="row">
@@ -178,7 +175,7 @@
       <button id="limpiarBtn">Limpiar</button>
       <button id="exportarBtn">Exportar Excel</button>
       <button id="exportarFil">Exportar Filtrados</button>
-
+      <button id="btnLogout" title="Cerrar sesión">Cerrar sesión</button>
     </div>
 
     <div id="estado"></div>
@@ -204,10 +201,9 @@
         <div style="flex: 1;">
           <label for="filtroGenero">Filtrar por Género:</label><br>
           <select id="filtroGenero" style="width: 100%; padding: 8px;">
-          <option value="">Todos los géneros</option>
+            <option value="">Todos los géneros</option>
           </select>
         </div>
-
 
         <div style="flex: 1;">
           <label for="filtroNivel">Filtrar por Nivel educativo:</label><br>
@@ -231,37 +227,43 @@
         </div>
       </div>
     </div>
-<!-- NUEVO: Contador total mostrado -->
-<div class="section-table" style="margin: 8px 0; display:flex; justify-content:flex-end;">
-  <span id="contadorPersonas"
-        style="background:#5257f8; color:#fff; padding:6px 12px; border-radius:10px; font-weight:bold;">
-    Total: 0
-  </span>
-</div>
+
+    <!-- Contador total mostrado -->
+    <div class="section-table" style="margin: 8px 0; display:flex; justify-content:flex-end;">
+      <span id="contadorPersonas"
+            style="background:#5257f8; color:#fff; padding:6px 12px; border-radius:10px; font-weight:bold;">
+        Total: 0
+      </span>
+    </div>
 
     <div class="section-table" id="tablaResultados"></div>
 
-    <div class="charts-row">
-      <div class="chart-container">
-        <h3>Postulados vs Colocados</h3>
-        <canvas id="chartBusquedaColocacion"></canvas>
-      </div>
-      <div class="chart-container">
-        <h3>Tasa de Búsqueda de Empleo</h3>
-        <canvas id="chartTasas"></canvas>
-      </div>
-      <div class="chart-container">
-        <h3>Clasificación de Hojas de Vida(%)</h3>
-        <canvas id="chartHojaVida"></canvas>
-      </div>
-      <div class="chart-container">
-        <h3>Conteo por Programa utp</h3>
-        <canvas id="chartProgramaCount"></canvas>
-        <div id="leyendaProgramas" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
-      </div>
-    </div>
+    <!-- SOLO queda este gráfico -->
+<!-- Fila 1: Género -->
+<div class="charts-row">
+  <div class="chart-container">
+    <h3>Distribución por Género</h3>
+    <canvas id="chartGenero"></canvas>
   </div>
 </div>
+
+<!-- Fila 2: Programa -->
+<div class="charts-row">
+  <div class="chart-container">
+    <h3>Conteo por Programa utp</h3>
+    <canvas id="chartProgramaCount"></canvas>
+    <div id="leyendaProgramas" style="margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+  </div>
+</div>
+
+<!-- Fila 3: Ciudad de residencia -->
+<div class="charts-row">
+  <div class="chart-container">
+    <h3>Ciudad de Residencia</h3>
+    <canvas id="chartCiudad"></canvas>
+  </div>
+</div>
+
 
 <script>
   // Contraseña demo
@@ -350,7 +352,10 @@
 </script>
 
 <script>
-  let chart1=null, chart2=null; let chartHv = null; let chartProg = null;
+  // Solo queda este gráfico:
+  let chartProg = null, chartGenero = null, chartCiudad = null;
+
+
   let coincidenciasExportables=[];
   let selectedEsclavoFiles = [];
   let hasVacantesMeta = false; // si hay archivo de oferentes/postulados
@@ -383,7 +388,9 @@
     genero:['genero','género','sexo','identifica genero','identifica género'],
     hv:['% hoja vida','% hoja de vida','porcentaje hoja de vida','hoja de vida %','hv','% hv','%hv','porcentaje hv'],
     telefono:['telefono','teléfono','celular','nro celular','numero celular','número celular','contacto','movil','móvil'],
-    correo:['correo','email','e-mail','mail','correo electronico','correo electrónico']
+    correo:['correo','email','e-mail','mail','correo electronico','correo electrónico'],
+    ciudad: ['ciudad','ciudad residencia','ciudad de residencia','municipio','municipio residencia','ciudad/municipio','residencia',
+  'ciudad domicilio','ciudad de domicilio','ciudad residencia actual']
   };
 
   const VAC_HDR = {
@@ -438,7 +445,7 @@
                 if (row.every(v => (v==null || String(v).trim()===''))) continue;
                 const obj = {};
                 for (let c=0; c<headers.length; c++){
-                  obj[headers[c] || `__col_${c}`] = row[c];
+                  obj[headers[c] || __col_${c}] = row[c];
                 }
                 rows.push(obj);
               }
@@ -449,7 +456,7 @@
                 if (row.every(v => (v==null || String(v).trim()===''))) continue;
                 const obj = {};
                 for (let c=0; c<maxCols; c++){
-                  obj[`col_${c}`] = row[c];
+                  obj[col_${c}] = row[c];
                 }
                 rows.push(obj);
               }
@@ -517,6 +524,9 @@
     const hojaVida = row['% Hoja Vida'] ?? row['% Hoja de Vida'] ?? pick(row, HDR.hv) ?? '';
     const telefono = row['CELULAR'] ?? row['Teléfono'] ?? pick(row, HDR.telefono) ?? '';
     const correo   = row['Correo']  ?? row['EMAIL']   ?? pick(row, HDR.correo)   ?? '';
+    const ciudad = row['CIUDAD_RESIDENCIA'] ?? row['Ciudad de Residencia'] ??
+               row['Ciudad'] ?? row['Municipio'] ?? pick(row, HDR.ciudad) ?? '';
+
 
     // campos de vacantes
     let codigoVacante, ultimaVacante;
@@ -526,7 +536,7 @@
       if (VAC_HDR.ultima.includes(nk) && ultimaVacante === undefined) ultimaVacante = row[k];
     }
 
-    return { id, nombre, programa, nivel, genero, hojaVida, telefono, correo, codigoVacante, ultimaVacante };
+    return { id, nombre, programa, nivel, genero, hojaVida, telefono, correo, codigoVacante, ultimaVacante, ciudad };
   }
 
   // ===== Normalización de Programas =====
@@ -543,7 +553,7 @@
   };
 
   function fixTypos(s){
-    s = s.replace(/\(.*?\)|\[.*?\]/g,' ');
+    s = s.replace(/\(.?\)|\[.?\]/g,' ');
     s = s.replace(/\binenier[oa]?\b/g,'ingenieria');
     s = s.replace(/\bing[ei]nier[oa]\b/g,'ingenieria');
     s = s.replace(/\bing[ei]nieria?\b/g,'ingenieria');
@@ -604,8 +614,8 @@
     else if (/administracion/.test(s)) area = 'administracion';
     else if (/contabilidad/.test(s)) area = 'contabilidad';
 
-    if (nivel && area) return `${nivel}_${area}`;
-    if (nivel) return `${nivel}_${s.replace(/\s+/g,'_')}`;
+    if (nivel && area) return ${nivel}_${area};
+    if (nivel) return ${nivel}_${s.replace(/\s+/g,'_')};
     return s.replace(/\s+/g,'_');
   }
 
@@ -736,33 +746,33 @@
   });
 
   // ===== Tabla / Filtros =====
-function renderTabla(list){
-  const el = document.getElementById('tablaResultados');
-  const ultimaSel = (document.getElementById('filtroUltimaVacante')?.value || '');
-  const showVacCols = !!ultimaSel; // solo mostrar columnas de vacantes si hay filtro aplicado
+  function renderTabla(list){
+    const el = document.getElementById('tablaResultados');
+    const ultimaSel = (document.getElementById('filtroUltimaVacante')?.value || '');
+    const showVacCols = !!ultimaSel; // solo mostrar columnas de vacantes si hay filtro aplicado
 
-  let html = `<table><thead><tr>
-    <th>Número Documento</th><th>Nombre</th><th>Programa UTP</th><th>Último nivel educativo</th><th>Género</th>
-    <th>Celular</th><th>Correo</th><th>Hoja de Vida
-    </th>${showVacCols ? '<th>Última Vacante</th><th>Código Vacante</th>' : ''}
-  </tr></thead><tbody>`;
+    let html = `<table><thead><tr>
+      <th>Número Documento</th><th>Nombre</th><th>Programa UTP</th><th>Último nivel educativo</th><th>Género</th>
+      <th>Celular</th><th>Correo</th><th>Hoja de Vida
+      </th>${showVacCols ? '<th>Última Vacante</th><th>Código Vacante</th>' : ''}
+    </tr></thead><tbody>`;
 
-  list.forEach(r=>{
-    const nivelBonito = prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || ''));
-    html += `<tr>
-  <td>${r.id}</td><td>${r.nombre || '—'}</td><td>${r.programa || '—'}</td>
-  <td>${nivelBonito || '—'}</td><td>${r.genero || '—'}</td>
-  <td>${r.telefono || '—'}</td><td>${r.correo || '—'}</td><td>${r.hojaVida || '—'}</td>
-  ${showVacCols ? `<td>${r.ultimaVacante ?? '—'}</td><td>${r.codigoVacante ?? '—'}</td>` : ''}
-</tr>`;
-  });
+    list.forEach(r=>{
+      const nivelBonito = prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || ''));
+      html += `<tr>
+        <td>${r.id}</td><td>${r.nombre || '—'}</td><td>${r.programa || '—'}</td>
+        <td>${nivelBonito || '—'}</td><td>${r.genero || '—'}</td>
+        <td>${r.telefono || '—'}</td><td>${r.correo || '—'}</td><td>${r.hojaVida || '—'}</td>
+        ${showVacCols ? <td>${r.ultimaVacante ?? '—'}</td><td>${r.codigoVacante ?? '—'}</td> : ''}
+      </tr>`;
+    });
 
-  html += `</tbody></table>`;
-  // NUEVO: actualizar contador
-const cnt = document.getElementById('contadorPersonas');
-if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
-  el.innerHTML = html;
-}
+    html += </tbody></table>;
+    // actualizar contador
+    const cnt = document.getElementById('contadorPersonas');
+    if (cnt) cnt.textContent = Total: ${list.length.toLocaleString('es-CO')};
+    el.innerHTML = html;
+  }
 
   function fillProgramFilter(list){
     const sel = document.getElementById('filtroPrograma');
@@ -794,24 +804,35 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
   }
 
   function fillGeneroFilter(list) {
-  const sel = document.getElementById('filtroGenero');
-  const set = new Set();
-  list.forEach(x => {
-    const genero = (x.genero || '').trim();
-    if (genero) set.add(genero);
+    const sel = document.getElementById('filtroGenero');
+    const set = new Set();
+    list.forEach(x => {
+      const genero = (x.genero || '').trim();
+      if (genero) set.add(genero);
+    });
+    const items = Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+    sel.innerHTML = '<option value="">Todos los géneros</option>';
+    items.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  }
+// Cuenta Masculino/Femenino a partir de los valores reales de 'genero' en la lista
+function contarGeneroMF(list) {
+  let M = 0, F = 0;
+  list.forEach(r => {
+    const g = norm(r.genero || ''); // usa la misma normalización
+    if (!g) return;
+    // Mapeos comunes (masculino/m, hombre/male/masc/varon) y (femenino/f, mujer/female/fem)
+    if (/\b(m|masculino|hombre|male|masc|varon|varón)\b/.test(g)) M++;
+    else if (/\b(f|femenino|mujer|female|fem)\b/.test(g)) F++;
   });
-  const items = Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
-  sel.innerHTML = '<option value="">Todos los géneros</option>';
-  items.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v;
-    opt.textContent = v;
-    sel.appendChild(opt);
-  });
+  return { M, F };
 }
 
-
-  // NUEVO: llenar opciones de “Última Vacante”
+  // Llenar opciones de “Última Vacante”
   function fillUltimaVacanteOptions(list){
     const sel = document.getElementById('filtroUltimaVacante');
     if (!sel) return;
@@ -847,11 +868,9 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
       else okN = (nCanon === nivelCanonSel);
 
       const okT = !txt || (r.nombre||'').toLowerCase().includes(txt) || (r.id||'').includes(txt) || (r.correo||'').toLowerCase().includes(txt) || (r.telefono||'').toLowerCase().includes(txt);
-
       const okUlt = !ultSel || (String(r.ultimaVacante ?? '').toLowerCase() === ultSel);
 
       return okP && okN && okT && okUlt && okG;
-
     });
     renderTabla(filtered);
   }
@@ -882,7 +901,6 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
       const maestroCanon = maestroRows.map(r=>toCanonical(r, maestroIdFallback)).filter(Boolean);
       const mapM = new Map(maestroCanon.map(r=>[r.id, r]));
 
-      let countPost=0, countCol=0;
       const coincidencias = [];
 
       for (const f of esclavoFiles){
@@ -903,6 +921,7 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
               hojaVida: r.hojaVida || m.hojaVida || '',
               telefono: r.telefono || m.telefono || '',
               correo:   r.correo   || m.correo   || '',
+              ciudad: r.ciudad || m.ciudad || '',
               codigoVacante: r.codigoVacante ?? '',
               ultimaVacante: r.ultimaVacante ?? ''
             };
@@ -911,9 +930,6 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
         coincidencias.push(...matches);
 
         const lname = f.name.toLowerCase();
-        if (lname.includes('postulado')) countPost += matches.length;
-        else if (lname.includes('colocado')) countCol += matches.length;
-
         if (lname.includes('oferentes') && lname.includes('postulado')) {
           hasVacantesMeta = true;
         }
@@ -933,52 +949,27 @@ if (cnt) cnt.textContent = `Total: ${list.length.toLocaleString('es-CO')}`;
       fillGeneroFilter(coincidenciasExportables);
       renderTabla(coincidenciasExportables);
 
-      // mostrar/ocultar y llenar opciones de Última Vacante
-      const vacBox = document.getElementById('vacantesFilters');
-      if (vacBox) vacBox.style.display = hasVacantesMeta ? 'block' : 'none';
-      if (hasVacantesMeta) fillUltimaVacanteOptions(coincidenciasExportables);
+if (chartProg) chartProg.destroy();
+if (chartGenero) chartGenero.destroy();
+if (chartCiudad) chartCiudad.destroy();
 
-      const c1 = document.getElementById('chartBusquedaColocacion').getContext('2d');
-      if (chart1) chart1.destroy();
-      chart1 = new Chart(c1, {
-        type:'bar',
-        data:{ labels:['Postulados','Colocados'], datasets:[{label:'Cantidad', data:[countPost,countCol], backgroundColor:['#007bfc','#28a745']} ] },
-        options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
-      });
+// === Gráfico de Género (Masculino / Femenino) ===
+const ctxG = document.getElementById('chartGenero').getContext('2d');
+if (chartGenero) chartGenero.destroy();
 
-      const c2 = document.getElementById('chartTasas').getContext('2d');
-      if (chart2) chart2.destroy();
-      const tasa = maestroCanon.length ? (coincidencias.length/maestroCanon.length)*100 : 0;
-      chart2 = new Chart(c2, { type:'doughnut',
-        data:{ labels:['Búsqueda','No búsqueda'], datasets:[{ data:[tasa,100-tasa], backgroundColor:['#ffc107','#e9ecef'] }] },
-        options:{ responsive:true }
-      });
+const { M, F } = contarGeneroMF(coincidenciasExportables);
 
-      const ctxHv = document.getElementById('chartHojaVida').getContext('2d');
-if (chartHv) chartHv.destroy();
-const hvValues = coincidenciasExportables.map(r => {
-  const v = parseFloat(r.hojaVida);
-  return isNaN(v) ? 0 : v;
-});
-// Por ejemplo: agrupar en rangos 0‑20, 21‑40, 41‑60, 61‑80, 81‑100
-const ranges = {
-  '0‑20': 0, '21‑40': 0, '41‑60': 0, '61‑80': 0, '81‑100': 0
-};
-hvValues.forEach(v => {
-  if (v <= 20) ranges['0‑20']++;
-  else if (v <= 40) ranges['21‑40']++;
-  else if (v <= 60) ranges['41‑60']++;
-  else if (v <= 80) ranges['61‑80']++;
-  else ranges['81‑100']++;
-});
-chartHv = new Chart(ctxHv, {
-  type: 'bar',
+// Si no hay datos reconocidos, igual mostramos 0/0 (no se queda "en blanco" por parsing)
+chartGenero = new Chart(ctxG, {
+  type: 'bar', // o 'doughnut' si lo prefieres
   data: {
-    labels: Object.keys(ranges),
+    labels: ['Masculino', 'Femenino'],
     datasets: [{
-      label: 'Número de personas',
-      data: Object.values(ranges),
-      backgroundColor: '#17a2b8'
+      label: 'Personas',
+      data: [M, F],
+      backgroundColor: ['#3b82f6', '#f472b6'],  // Azul (niños), Rosado (mujeres)
+      borderColor:     ['#2563eb', '#ec4899'],
+      borderWidth: 1
     }]
   },
   options: {
@@ -987,50 +978,85 @@ chartHv = new Chart(ctxHv, {
   }
 });
 
-const ctxP = document.getElementById('chartProgramaCount').getContext('2d');
-if (chartProg) chartProg.destroy();
+// ====== Gráfico: Ciudad de Residencia ======
+const ctxC = document.getElementById('chartCiudad').getContext('2d');
+if (chartCiudad) chartCiudad.destroy();
 
-const countByProg = {};
+// contar por ciudad (limpia y agrupa)
+const cityCounts = {};
 coincidenciasExportables.forEach(r => {
-  const canon = canonProgram(r.programa || '');
-  const label = prettyProgram(canon, r.programa || '');
-  countByProg[label] = (countByProg[label] || 0) + 1;
+  const c = (r.ciudad || '').toString().trim();
+  if (!c) return;
+  cityCounts[c] = (cityCounts[c] || 0) + 1;
 });
 
-const labelsP = Object.keys(countByProg).sort((a, b) => a.localeCompare(b, 'es'));
-const dataP = labelsP.map(lb => countByProg[lb]);
+// top-N para que no se sature el eje X
+const entriesC = Object.entries(cityCounts).sort((a,b)=> b[1]-a[1]);
+const TOP = 20;  // cambia a 10/15/20 según prefieras
+let labelsC = entriesC.slice(0, TOP).map(e => e[0]);
+let dataC   = entriesC.slice(0, TOP).map(e => e[1]);
+if (entriesC.length > TOP) {
+  const otros = entriesC.slice(TOP).reduce((s, [,n]) => s + n, 0);
+  labelsC.push('Otros');
+  dataC.push(otros);
+}
 
-chartProg = new Chart(ctxP, {
+chartCiudad = new Chart(ctxC, {
   type: 'bar',
   data: {
-    labels: labelsP,
+    labels: labelsC,
     datasets: [{
       label: 'Personas',
-      data: dataP,
-      backgroundColor: labelsP.map((_, i) => `hsl(${(i * 47) % 360}, 70%, 60%)`)
+      data: dataC,
+      backgroundColor: labelsC.map((_, i) => hsl(${(i*37)%360}, 70%, 60%))
     }]
   },
   options: {
-  responsive: true,
-  scales: {
-    y: {
-      beginAtZero: true,
-      ticks: { precision: 0 }
-    },
-    x: {
-      ticks: {
-        maxRotation: 60,
-        minRotation: 60,
-        autoSkip: false
-      }
+    responsive: true,
+    scales: {
+      y: { beginAtZero: true, ticks: { precision: 0 } },
+      x: { ticks: { maxRotation: 60, minRotation: 60, autoSkip: false } }
     }
   }
-}
-
 });
 
+      // mostrar/ocultar y llenar opciones de Última Vacante
+      const vacBox = document.getElementById('vacantesFilters');
+      if (vacBox) vacBox.style.display = hasVacantesMeta ? 'block' : 'none';
+      if (hasVacantesMeta) fillUltimaVacanteOptions(coincidenciasExportables);
 
+      // ----- ÚNICO gráfico que queda: Conteo por Programa -----
+      const ctxP = document.getElementById('chartProgramaCount').getContext('2d');
+      if (chartProg) chartProg.destroy();
 
+      const countByProg = {};
+      coincidenciasExportables.forEach(r => {
+        const canon = canonProgram(r.programa || '');
+        const label = prettyProgram(canon, r.programa || '');
+        countByProg[label] = (countByProg[label] || 0) + 1;
+      });
+
+      const labelsP = Object.keys(countByProg).sort((a, b) => a.localeCompare(b, 'es'));
+      const dataP = labelsP.map(lb => countByProg[lb]);
+
+      chartProg = new Chart(ctxP, {
+        type: 'bar',
+        data: {
+          labels: labelsP,
+          datasets: [{
+            label: 'Personas',
+            data: dataP,
+            backgroundColor: labelsP.map((_, i) => hsl(${(i * 47) % 360}, 70%, 60%))
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+            x: { ticks: { maxRotation: 60, minRotation: 60, autoSkip: false } }
+          }
+        }
+      });
 
       estado.textContent = '✅ Análisis completo';
     }catch(err){
@@ -1051,19 +1077,25 @@ chartProg = new Chart(ctxP, {
     hasVacantesMeta = false;
     const vacBox = document.getElementById('vacantesFilters'); if (vacBox) vacBox.style.display='none';
     const fuv=document.getElementById('filtroUltimaVacante'); if (fuv) fuv.value='';
-    if (chart1) chart1.destroy(); if (chart2) chart2.destroy();
-    // NUEVO: reset contador
-const cnt = document.getElementById('contadorPersonas');
-if (cnt) cnt.textContent = 'Total: 0';
+    if (chartProg) chartProg.destroy();   // destruir el único gráfico
+    // reset contador
+    const cnt = document.getElementById('contadorPersonas');
+    if (cnt) cnt.textContent = 'Total: 0';
   });
 
   document.getElementById('exportarBtn').addEventListener('click', ()=>{
     if (!coincidenciasExportables.length){ alert('No hay coincidencias para exportar.'); return; }
-    const datos = coincidenciasExportables.map(r=>({
-      Documento:r.id, Nombre:r.nombre||'', 'Programa UTP':r.programa||'',
-      'Último nivel educativo':prettyNivel(nivelCanonRobusto(r.nivel||'', r.programa||'')), Genero:r.genero||'', HojaVida:r.hojaVida||'',
-      Celular:r.telefono||'', Correo:r.correo||''
-    }));
+   const datos = coincidenciasExportables.map(r => ({
+  Documento: r.id,
+  Nombre: r.nombre || '',
+  'Programa UTP': r.programa || '',
+  'Último nivel educativo': prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || '')),
+  Genero: r.genero || '',
+  HojaVida: r.hojaVida || '',
+  Celular: r.telefono || '',
+  Correo: r.correo || '',
+  'Ciudad de Residencia': r.ciudad || ''
+}));
     const ws = XLSX.utils.json_to_sheet(datos);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Coincidencias');
@@ -1071,50 +1103,46 @@ if (cnt) cnt.textContent = 'Total: 0';
   });
 
   document.getElementById('exportarFil').addEventListener('click', () => {
-  const progCanonSel = (document.getElementById('filtroPrograma').value || '');
-  const nivelCanonSel = (document.getElementById('filtroNivel')?.value || '');
-  const txt = (document.getElementById('filtroTexto').value || '').toLowerCase();
-  const ultSel = (document.getElementById('filtroUltimaVacante')?.value || '').toLowerCase();
+    const progCanonSel = (document.getElementById('filtroPrograma').value || '');
+    const nivelCanonSel = (document.getElementById('filtroNivel')?.value || '');
+    const txt = (document.getElementById('filtroTexto').value || '').toLowerCase();
+    const ultSel = (document.getElementById('filtroUltimaVacante')?.value || '').toLowerCase();
 
-  const filtered = coincidenciasExportables.filter(r => {
-    const pCanon = canonProgram(r.programa || '');
-    const nCanon = nivelCanonRobusto(r.nivel || '', r.programa || '');
-    const okP = !progCanonSel || pCanon === progCanonSel;
+    const filtered = coincidenciasExportables.filter(r => {
+      const pCanon = canonProgram(r.programa || '');
+      const nCanon = nivelCanonRobusto(r.nivel || '', r.programa || '');
+      const okP = !progCanonSel || pCanon === progCanonSel;
 
-    let okN;
-    if (!nivelCanonSel) okN = true;
-    else if (nivelCanonSel === 'profesional') okN = (nCanon === 'profesional') && !isProgramaTecnologia(r.programa);
-    else okN = (nCanon === nivelCanonSel);
+      let okN;
+      if (!nivelCanonSel) okN = true;
+      else if (nivelCanonSel === 'profesional') okN = (nCanon === 'profesional') && !isProgramaTecnologia(r.programa);
+      else okN = (nCanon === nivelCanonSel);
 
-    const okT = !txt || (r.nombre || '').toLowerCase().includes(txt) || (r.id || '').includes(txt) || (r.correo || '').toLowerCase().includes(txt) || (r.telefono || '').toLowerCase().includes(txt);
-    const okUlt = !ultSel || (String(r.ultimaVacante ?? '').toLowerCase() === ultSel);
+      const okT = !txt || (r.nombre || '').toLowerCase().includes(txt) || (r.id || '').includes(txt) || (r.correo || '').toLowerCase().includes(txt) || (r.telefono || '').toLowerCase().includes(txt);
+      const okUlt = !ultSel || (String(r.ultimaVacante ?? '').toLowerCase() === ultSel);
 
-    return okP && okN && okT && okUlt;
+      return okP && okN && okT && okUlt;
+    });
+
+    if (!filtered.length) {
+      alert('No hay registros para exportar con los filtros actuales.');
+      return;
+    }
+
+ const datos = filtered.map(r => ({
+  Documento:r.id, Nombre:r.nombre||'', 'Programa utp':r.programa||'',
+  'Último nivel educativo':prettyNivel(nivelCanonRobusto(r.nivel||'', r.programa||'')),
+  Género:r.genero||'', 'Hoja de Vida(%)':r.hojaVida||'',
+  Celular:r.telefono||'', Correo:r.correo||'',
+  'Ciudad de Residencia': r.ciudad || ''
+}));
+
+
+    const ws = XLSX.utils.json_to_sheet(datos);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Filtrados');
+    XLSX.writeFile(wb, 'Coincidencias_Filtradas.xlsx');
   });
-
-  if (!filtered.length) {
-    alert('No hay registros para exportar con los filtros actuales.');
-    return;
-  }
-
-  const datos = filtered.map(r => ({
-    Documento: r.id,
-    Nombre: r.nombre || '',
-    'Programa utp': r.programa || '',
-    'Último nivel educativo': prettyNivel(nivelCanonRobusto(r.nivel || '', r.programa || '')),
-    Género: r.genero || '',
-    'Hoja de Vida(%)': r.hojaVida || '',
-    Celular: r.telefono || '',
-    Correo: r.correo || ''
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(datos);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Filtrados');
-  XLSX.writeFile(wb, 'Coincidencias_Filtradas.xlsx');
-});
-
-  
 
   document.getElementById("btnLogout").addEventListener("click", () => {
     if (confirm("¿Estás seguro que deseas cerrar sesión?")) {
